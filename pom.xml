@@ -9,12 +9,31 @@
     <version>1.0.0</version>
     <packaging>maven-plugin</packaging>
     <name>autofill-javadoc-maven-plugin</name>
-    <description>自动为 Java 方法补全 Javadoc 参数和返回值注释的 Maven 插件</description>
+    <description>基于java17的自动为 Java 方法补全 Javadoc 参数和返回值注释的 Maven 插件</description>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
     </properties>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://www.opensource.org/licenses/mit-license.php</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>liyao52033</name>
+            <email>1503027549@qq.com</email>
+            <url>https://github.com/liyao52033</url>
+        </developer>
+    </developers>
+    <scm>
+        <connection>https://github.com/liyao52033/autofill-javadoc-maven-plugin</connection>
+        <developerConnection>scm:git:ssh://git@github.com:liyao52033/autofill-javadoc-maven-plugin.git</developerConnection>
+        <url>https://github.com/liyao52033/autofill-javadoc-maven-plugin</url>
+    </scm>
 
     <dependencies>
         <!-- JavaParser 依赖 -->
