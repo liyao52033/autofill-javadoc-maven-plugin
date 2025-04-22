@@ -9,6 +9,34 @@
 
 
 ## 使用
+
+### 单独使用
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>io.github.liyao52033</groupId>
+            <artifactId>autofill-javadoc-maven-plugin</artifactId>
+            <version>1.1.0</version>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>autofill</goal>
+                    </goals>
+                    <phase>generate-sources</phase> 
+                </execution>
+            </executions>
+            <configuration>
+                <sourceDir>src/main/java</sourceDir> <!-- 指定源代码目录 -->
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
+
+
+```
+
+### 集成maven-javadoc-plugin插件发布到中央仓库
 ```xml
 <build>
     <plugins>
@@ -40,7 +68,7 @@
         <plugin>
             <groupId>io.github.liyao52033</groupId>
             <artifactId>autofill-javadoc-maven-plugin</artifactId>
-            <version>1.0.0</version>
+            <version>1.1.0</version>
             <executions>
                 <execution>
                     <goals>
