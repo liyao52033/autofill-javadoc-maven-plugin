@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>io.github.liyao52033</groupId>
+  <artifactId>autofill-javadoc-maven-plugin</artifactId>
+  <version>1.2.0</version>
+  <packaging>maven-plugin</packaging>
+  <name>autofill-javadoc-maven-plugin</name>
+  <description>自动为 Java 方法补全 Javadoc 参数和返回值注释的 Maven 插件, 支持Java 8和Java 17, 可以配合maven-javadoc-plugin插件使用</description>
+  <url>https://github.com/liyao52033/autofill-javadoc-maven-plugin</url>
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://www.opensource.org/licenses/mit-license.php</url>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <name>liyao52033</name>
+      <email>1503027549@qq.com</email>
+      <url>https://github.com/liyao52033</url>
+    </developer>
+  </developers>
+  <scm>
+    <connection>https://github.com/liyao52033/autofill-javadoc-maven-plugin</connection>
+    <developerConnection>scm:git:ssh://git@github.com:liyao52033/autofill-javadoc-maven-plugin.git</developerConnection>
+    <url>https://github.com/liyao52033/autofill-javadoc-maven-plugin</url>
+  </scm>
+  <dependencies>
+    <dependency>
+      <groupId>com.github.javaparser</groupId>
+      <artifactId>javaparser-symbol-solver-core</artifactId>
+      <version>3.25.4</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-plugin-api</artifactId>
+      <version>3.8.1</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.plugin-tools</groupId>
+      <artifactId>maven-plugin-annotations</artifactId>
+      <version>3.6.0</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.sonatype.central</groupId>
+        <artifactId>central-publishing-maven-plugin</artifactId>
+        <version>0.5.0</version>
+        <extensions>true</extensions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
