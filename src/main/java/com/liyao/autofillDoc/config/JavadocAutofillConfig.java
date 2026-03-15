@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Javadoc自动填充配置类
+ * Javadoc 自动填充配置类
  * 用于存储插件的配置参数
  */
 public class JavadocAutofillConfig {
@@ -51,6 +51,37 @@ public class JavadocAutofillConfig {
     private final boolean includePrivateMethods;
 
     /**
+     * 是否启用 AI 生成方法描述
+     */
+    private final boolean enableAi;
+
+    /**
+     * AI API 密钥
+     */
+    private final String aiApiKey;
+
+    /**
+     * AI API 地址
+     */
+    private final String aiApiUrl;
+
+    /**
+     * AI 模型名称
+     */
+    private final String aiModel;
+
+    /**
+     * AI 提供商名称（用于快速选择预设配置）
+     * 支持：OPENAI, DEEPSEEK, MOONSHOT, ZHIPU, OLLAMA, AZURE, ANTHROPIC, GEMINI
+     */
+    private final String aiProvider;
+
+    /**
+     * 是否跳过已有注释的方法（避免重复生成浪费 token）
+     */
+    private final boolean skipExistingJavadoc;
+
+    /**
      * 构造函数
      * 
      * @param builder 构建器
@@ -64,6 +95,12 @@ public class JavadocAutofillConfig {
         this.addThrowsJavadoc = builder.addThrowsJavadoc;
         this.excludePatterns = builder.excludePatterns;
         this.includePrivateMethods = builder.includePrivateMethods;
+        this.enableAi = builder.enableAi;
+        this.aiApiKey = builder.aiApiKey;
+        this.aiApiUrl = builder.aiApiUrl;
+        this.aiModel = builder.aiModel;
+        this.aiProvider = builder.aiProvider;
+        this.skipExistingJavadoc = builder.skipExistingJavadoc;
     }
 
     /**
@@ -139,6 +176,157 @@ public class JavadocAutofillConfig {
     }
 
     /**
+     * 是否启用 AI 生成方法描述
+     * 
+     * @return 是否启用 AI
+     */
+    public boolean isEnableAi() {
+        return enableAi;
+    }
+
+    /**
+     * 获取 AI API 密钥
+     * 
+     * @return AI API 密钥
+     */
+    public String getAiApiKey() {
+        return aiApiKey;
+    }
+
+    /**
+     * 获取 AI API 地址
+     * 
+     * @return AI API 地址
+     */
+    public String getAiApiUrl() {
+        return aiApiUrl;
+    }
+
+    /**
+     * 获取 AI 模型名称
+     * 
+     * @return AI 模型名称
+     */
+    public String getAiModel() {
+        return aiModel;
+    }
+
+    /**
+     * 获取 AI 提供商名称
+     * 
+     * @return AI 提供商名称
+     */
+    public String getAiProvider() {
+        return aiProvider;
+    }
+
+    /**
+     * 获取 AI 提供商的预设 API 地址
+     * 
+     * @return API 地址
+     */
+    public String getProviderApiUrl() {
+        if (aiApiUrl != null && !aiApiUrl.isEmpty()) {
+            return aiApiUrl;
+        }
+        // 根据提供商返回预设地址
+        return AiProvider.getApiUrl(aiProvider);
+    }
+
+    /**
+     * 获取 AI 提供商的预设模型名称
+     * 
+     * @return 模型名称
+     */
+    public String getProviderModel() {
+        if (aiModel != null && !aiModel.isEmpty()) {
+            return aiModel;
+        }
+        // 根据提供商返回预设模型
+        return AiProvider.getDefaultModel(aiProvider);
+    }
+
+    /**
+     * 是否跳过已有注释的方法
+     * 
+     * @return 是否跳过
+     */
+    public boolean isSkipExistingJavadoc() {
+        return skipExistingJavadoc;
+    }
+
+    /**
+     * AI 提供商枚举
+     * 包含主流 AI 服务提供商的预设配置
+     */
+    public enum AiProvider {
+        OPENAI("https://api.openai.com", "gpt-3.5-turbo"),
+        DEEPSEEK("https://api.deepseek.com", "deepseek-chat"),
+        MOONSHOT("https://api.moonshot.cn", "moonshot-v1-8k"),
+        ZHIPU("https://open.bigmodel.cn", "glm-4"),
+        OLLAMA("http://localhost:11434", "mistral"),
+        AZURE("https://api.azure.com", "gpt-4"),
+        ANTHROPIC("https://api.anthropic.com", "claude-3-sonnet-20240229"),
+        GEMINI("https://generativelanguage.googleapis.com", "gemini-pro"),
+        BAIDU("https://aip.baidubce.com", "ernie-bot-4"),
+        ALIBABA("https://dashscope.aliyuncs.com", "qwen-turbo"),
+        CUSTOM("", "gpt-3.5-turbo");
+
+        private final String defaultUrl;
+        private final String defaultModel;
+
+        AiProvider(String defaultUrl, String defaultModel) {
+            this.defaultUrl = defaultUrl;
+            this.defaultModel = defaultModel;
+        }
+
+        public String getDefaultUrl() {
+            return defaultUrl;
+        }
+
+        public String getDefaultModel() {
+            return defaultModel;
+        }
+
+        /**
+         * 根据名称获取提供商
+         * 
+         * @param name 提供商名称
+         * @return AI 提供商枚举
+         */
+        public static AiProvider fromName(String name) {
+            if (name == null || name.isEmpty()) {
+                return CUSTOM;
+            }
+            try {
+                return valueOf(name.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return CUSTOM;
+            }
+        }
+
+        /**
+         * 获取提供商的默认 API 地址
+         * 
+         * @param name 提供商名称
+         * @return API 地址
+         */
+        public static String getApiUrl(String name) {
+            return fromName(name).getDefaultUrl();
+        }
+
+        /**
+         * 获取提供商的默认模型
+         * 
+         * @param name 提供商名称
+         * @return 模型名称
+         */
+        public static String getDefaultModel(String name) {
+            return fromName(name).getDefaultModel();
+        }
+    }
+
+    /**
      * 构建器类
      */
     public static class Builder {
@@ -150,6 +338,12 @@ public class JavadocAutofillConfig {
         private boolean addThrowsJavadoc = true;
         private List<String> excludePatterns = new ArrayList<>();
         private boolean includePrivateMethods = false;
+        private boolean enableAi = false;
+        private String aiApiKey = "";
+        private String aiApiUrl = "";
+        private String aiModel = "";
+        private String aiProvider = "OPENAI";
+        private boolean skipExistingJavadoc = true;
 
         /**
          * 设置源代码目录
@@ -236,6 +430,72 @@ public class JavadocAutofillConfig {
          */
         public Builder includePrivateMethods(boolean includePrivateMethods) {
             this.includePrivateMethods = includePrivateMethods;
+            return this;
+        }
+
+        /**
+         * 设置是否启用 AI 生成方法描述
+         * 
+         * @param enableAi 是否启用 AI
+         * @return 构建器
+         */
+        public Builder enableAi(boolean enableAi) {
+            this.enableAi = enableAi;
+            return this;
+        }
+
+        /**
+         * 设置 AI API 密钥
+         * 
+         * @param aiApiKey AI API 密钥
+         * @return 构建器
+         */
+        public Builder aiApiKey(String aiApiKey) {
+            this.aiApiKey = aiApiKey;
+            return this;
+        }
+
+        /**
+         * 设置 AI API 地址
+         * 
+         * @param aiApiUrl AI API 地址
+         * @return 构建器
+         */
+        public Builder aiApiUrl(String aiApiUrl) {
+            this.aiApiUrl = aiApiUrl;
+            return this;
+        }
+
+        /**
+         * 设置 AI 模型名称
+         * 
+         * @param aiModel AI 模型名称
+         * @return 构建器
+         */
+        public Builder aiModel(String aiModel) {
+            this.aiModel = aiModel;
+            return this;
+        }
+
+        /**
+         * 设置 AI 提供商名称
+         * 
+         * @param aiProvider AI 提供商名称 (OPENAI, DEEPSEEK, MOONSHOT, ZHIPU, OLLAMA 等)
+         * @return 构建器
+         */
+        public Builder aiProvider(String aiProvider) {
+            this.aiProvider = aiProvider;
+            return this;
+        }
+
+        /**
+         * 设置是否跳过已有注释的方法
+         * 
+         * @param skipExistingJavadoc 是否跳过
+         * @return 构建器
+         */
+        public Builder skipExistingJavadoc(boolean skipExistingJavadoc) {
+            this.skipExistingJavadoc = skipExistingJavadoc;
             return this;
         }
 

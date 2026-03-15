@@ -12,7 +12,7 @@ import com.github.javaparser.javadoc.description.JavadocDescription;
 import com.liyao.autofillDoc.config.JavadocAutofillConfig;
 import com.liyao.autofillDoc.exception.JavadocProcessingException;
 import com.liyao.autofillDoc.util.JavadocUtils;
-import org.apache.maven.plugin.logging.Log;
+import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,14 +22,15 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Javadoc处理器
- * 负责处理Java文件的Javadoc生成和更新
+ * Javadoc 处理器
+ * 负责处理 Java 文件的 Javadoc 生成和更新
  */
 public class JavadocProcessor {
 
-    private final Log log;
+    private final Logger log;
     private final JavadocAutofillConfig config;
     private final MethodDescriptionService methodDescriptionService;
+    private final AiMethodDescriptionService aiMethodDescriptionService;
 
     /**
      * 构造函数
@@ -37,18 +38,31 @@ public class JavadocProcessor {
      * @param log    日志对象
      * @param config 配置对象
      */
-    public JavadocProcessor(Log log, JavadocAutofillConfig config) {
+    public JavadocProcessor(Logger log, JavadocAutofillConfig config) {
         this.log = log;
         this.config = config;
         this.methodDescriptionService = new MethodDescriptionService();
+        
+        // 初始化 AI 服务（如果启用）
+        if (config.isEnableAi()) {
+            this.aiMethodDescriptionService = new AiMethodDescriptionService(
+                    log,
+                    config.getAiApiKey(),
+                    config.getProviderApiUrl(),
+                    config.getProviderModel());
+            log.info("AI 生成已启用，使用提供商：{}, 模型：{}", config.getAiProvider(), config.getProviderModel());
+        } else {
+            this.aiMethodDescriptionService = null;
+            log.info("AI 生成已禁用，使用规则生成方法描述");
+        }
     }
 
     /**
-     * 处理枚举类型的JavaDoc注释
-     * 此方法遍历给定的编译单元中的所有类型，识别出枚举类型，并为其添加JavaDoc注释
-     * 如果枚举类型或其常量缺少JavaDoc注释，则会自动生成一个简单的描述性注释
+     * 处理枚举类型的 JavaDoc 注释
+     * 此方法遍历给定的编译单元中的所有类型，识别出枚举类型，并为其添加 JavaDoc 注释
+     * 如果枚举类型或其常量缺少 JavaDoc 注释，则会自动生成一个简单的描述性注释
      *
-     * @param cu           编译单元，代表一个Java源文件
+     * @param cu           编译单元，代表一个 Java 源文件
      * @param fileModified 单元素数组，用于指示文件是否已被修改
      */
     private void processEnumJavadoc(CompilationUnit cu, boolean[] fileModified) {
@@ -56,21 +70,21 @@ public class JavadocProcessor {
         cu.getTypes().stream()
                 .filter(BodyDeclaration::isEnumDeclaration)
                 .forEach(enumType -> {
-                    // 如果枚举类型缺少JavaDoc注释，则生成并设置一个简单的描述性注释
+                    // 如果枚举类型缺少 JavaDoc 注释，则生成并设置一个简单的描述性注释
                     if (!enumType.getJavadoc().isPresent()) {
                         String doc = enumType.getNameAsString() + " 枚举的描述\n";
                         enumType.setJavadocComment(doc);
-                        log.debug("添加枚举注释: " + enumType.getNameAsString());
+                        log.debug("添加枚举注释：{}", enumType.getNameAsString());
                         fileModified[0] = true;
                     }
-                    // 如果枚举类型是EnumDeclaration的实例，则为其每个常量添加JavaDoc注释
+                    // 如果枚举类型是 EnumDeclaration 的实例，则为其每个常量添加 JavaDoc 注释
                     if (enumType instanceof EnumDeclaration) {
                         ((EnumDeclaration) enumType).getEntries().forEach(entry -> {
-                            // 如果枚举常量缺少JavaDoc注释，则生成并设置一个简单的描述性注释
+                            // 如果枚举常量缺少 JavaDoc 注释，则生成并设置一个简单的描述性注释
                             if (!entry.getJavadoc().isPresent()) {
                                 String entryDoc = entry.getNameAsString() + " 枚举常量的描述\n";
                                 entry.setJavadocComment(entryDoc);
-                                log.debug("添加枚举常量注释: " + entry.getNameAsString());
+                                log.debug("添加枚举常量注释：{}", entry.getNameAsString());
                                 fileModified[0] = true;
                             }
                         });
@@ -79,27 +93,27 @@ public class JavadocProcessor {
     }
 
     /**
-     * 处理Java文件，根据配置添加或修改JavaDoc注释
+     * 处理 Java 文件，根据配置添加或修改 JavaDoc 注释
      *
-     * @param file 待处理的Java文件
-     * @return 如果文件被处理并成功修改，则返回true；否则返回false
+     * @param file 待处理的 Java 文件
+     * @return 如果文件被处理并成功修改，则返回 true；否则返回 false
      * @throws JavadocProcessingException 如果文件处理过程中发生错误
      */
     public boolean processJavaFile(File file) {
         try {
             // 检查文件是否符合排除条件
             if (shouldExcludeFile(file)) {
-                log.info("根据排除模式跳过文件: " + file.getPath());
+                log.info("根据排除模式跳过文件：{}", file.getPath());
                 return false;
             }
 
-            // 解析Java文件内容
+            // 解析 Java 文件内容
             CompilationUnit cu = StaticJavaParser.parse(file);
 
             // 初始化标志，用于指示文件是否被修改
             boolean[] fileModified = { false };
 
-            // 根据配置处理类的JavaDoc注释
+            // 根据配置处理类的 JavaDoc 注释
             if (config.isAddClassJavadoc()) {
                 processTypeJavadoc(cu, fileModified);
             }
@@ -107,7 +121,7 @@ public class JavadocProcessor {
             // 添加对枚举注释的处理
             processEnumJavadoc(cu, fileModified);
 
-            // 根据配置处理方法的JavaDoc注释
+            // 根据配置处理方法的 JavaDoc 注释
             if (config.isAddMethodJavadoc() || config.isAddParamJavadoc() ||
                     config.isAddReturnJavadoc() || config.isAddThrowsJavadoc()) {
                 processMethodJavadoc(cu, fileModified);
@@ -122,7 +136,7 @@ public class JavadocProcessor {
                     // 只有当内容实际发生变化时才写入文件并打印日志
                     if (!newContent.equals(oldContent)) {
                         Files.write(file.toPath(), newContent.getBytes());
-                        log.info("处理完成: " + file.getPath());
+                        log.info("处理完成：{}", file.getPath());
                         return true;
                     } else {
                         return false;
@@ -132,16 +146,16 @@ public class JavadocProcessor {
                 }
             }
 
-            // 如果文件未被修改，返回false
+            // 如果文件未被修改，返回 false
             return false;
         } catch (Exception e) {
-            log.error("处理失败: " + file.getPath(), e);
+            log.error("处理失败：{}", file.getPath(), e);
             throw JavadocProcessingException.createFileProcessingException(file.getPath(), e);
         }
     }
 
     /**
-     * 处理类型的Javadoc注释
+     * 处理类型的 Javadoc 注释
      *
      * @param cu           编译单元
      * @param fileModified 文件是否被修改的标记
@@ -170,7 +184,7 @@ public class JavadocProcessor {
      * 检查文件是否被排除
      *
      * @param file 要检查的文件
-     * @return 如果文件应该被排除则返回true，否则返回false
+     * @return 如果文件应该被排除则返回 true，否则返回 false
      */
     private boolean shouldExcludeFile(File file) {
         String filePath = file.getPath();
@@ -190,8 +204,8 @@ public class JavadocProcessor {
     }
 
     /**
-     * 处理方法的Javadoc注释
-     * 此方法遍历编译单元中的所有可调用声明，特别是方法声明，并根据配置和现有注释添加或修改Javadoc
+     * 处理方法的 Javadoc 注释
+     * 此方法遍历编译单元中的所有可调用声明，特别是方法声明，并根据配置和现有注释添加或修改 Javadoc
      *
      * @param cu           编译单元，代表一个源文件及其包含的代码结构
      * @param fileModified 一个布尔数组，用于指示文件是否已被修改
@@ -206,7 +220,7 @@ public class JavadocProcessor {
 
     /**
      * 处理方法声明
-     * 负责处理方法级别的Javadoc生成和更新
+     * 负责处理方法级别的 Javadoc 生成和更新
      *
      * @param cu           编译单元
      * @param fileModified 文件修改标记
@@ -220,7 +234,7 @@ public class JavadocProcessor {
                         return; // 跳过私有方法
                     }
 
-                    // 初始化或获取现有Javadoc
+                    // 初始化或获取现有 Javadoc
                     Javadoc javadoc = initOrGetMethodJavadoc(method);
                     if (javadoc == null)
                         return;
@@ -231,18 +245,18 @@ public class JavadocProcessor {
                     if (methodModified) {
                         method.setJavadocComment(javadoc.toText());
                         fileModified[0] = true;
-                        log.debug("处理方法: " + method.getNameAsString());
+                        log.debug("处理方法：{}", method.getNameAsString());
                     }
                 }
             } catch (Exception e) {
-                log.warn("处理方法失败: " + decl.getNameAsString(), e);
+                log.warn("处理方法失败：{}", decl.getNameAsString(), e);
             }
         });
     }
 
     /**
      * 处理注解成员
-     * 负责处理注解成员级别的Javadoc生成和更新
+     * 负责处理注解成员级别的 Javadoc 生成和更新
      *
      * @param cu           编译单元
      * @param fileModified 文件修改标记
@@ -261,38 +275,60 @@ public class JavadocProcessor {
                 if (modified) {
                     annoMember.setJavadocComment(javadoc.toText());
                     fileModified[0] = true;
-                    log.debug("处理注解成员: " + annoMember.getNameAsString());
+                    log.debug("处理注解成员：{}", annoMember.getNameAsString());
                 }
             } catch (Exception e) {
-                log.warn("处理注解成员失败: " + annoMember.getNameAsString(), e);
+                log.warn("处理注解成员失败：{}", annoMember.getNameAsString(), e);
             }
         });
     }
 
     /**
-     * 初始化或获取方法的Javadoc
-     * 根据配置决定是否创建新的Javadoc或使用现有的
+     * 初始化或获取方法的 Javadoc
+     * 根据配置决定是否创建新的 Javadoc 或使用现有的
      *
      * @param method 方法声明
-     * @return Javadoc对象，如果不需要处理则返回null
+     * @return Javadoc 对象，如果不需要处理则返回 null
      */
     private Javadoc initOrGetMethodJavadoc(MethodDeclaration method) {
         if (method.getJavadoc().isPresent()) {
+            // 如果启用了跳过已有注释，则跳过该方法
+            if (config.isSkipExistingJavadoc()) {
+                log.debug("跳过已有注释的方法：{}", method.getNameAsString());
+                return null;
+            }
             return method.getJavadoc().get();
         } else if (config.isAddMethodJavadoc()) {
-            return new Javadoc(JavadocDescription.parseText(
-                    methodDescriptionService.generateMethodDescription(method)));
+            String description = generateMethodDescription(method);
+            return new Javadoc(JavadocDescription.parseText(description));
         }
         return null;
     }
 
     /**
-     * 处理方法Javadoc的各个部分
+     * 生成方法描述
+     * 根据配置选择使用 AI 生成或规则生成
+     *
+     * @param method 方法声明
+     * @return 方法描述
+     */
+    private String generateMethodDescription(MethodDeclaration method) {
+        if (config.isEnableAi() && aiMethodDescriptionService != null) {
+            log.debug("使用 AI 生成方法描述：{}", method.getNameAsString());
+            return aiMethodDescriptionService.generateMethodDescription(method);
+        } else {
+            log.debug("使用规则生成方法描述：{}", method.getNameAsString());
+            return methodDescriptionService.generateMethodDescription(method);
+        }
+    }
+
+    /**
+     * 处理方法 Javadoc 的各个部分
      * 包括参数、返回值和异常注释
      *
      * @param method  方法声明
-     * @param javadoc Javadoc对象
-     * @return 是否修改了Javadoc
+     * @param javadoc Javadoc 对象
+     * @return 是否修改了 Javadoc
      */
     private boolean processMethodJavadocParts(MethodDeclaration method, Javadoc javadoc) {
         List<JavadocBlockTag> tags = javadoc.getBlockTags();
@@ -310,9 +346,9 @@ public class JavadocProcessor {
      * 处理方法参数注释
      *
      * @param method  方法声明
-     * @param javadoc Javadoc对象
+     * @param javadoc Javadoc 对象
      * @param tags    标签列表
-     * @return 是否修改了Javadoc
+     * @return 是否修改了 Javadoc
      */
     private boolean processMethodParams(MethodDeclaration method, Javadoc javadoc, List<JavadocBlockTag> tags) {
         return config.isAddParamJavadoc() && processParamTags(method, javadoc, tags);
@@ -322,9 +358,9 @@ public class JavadocProcessor {
      * 处理方法返回值注释
      *
      * @param method  方法声明
-     * @param javadoc Javadoc对象
+     * @param javadoc Javadoc 对象
      * @param tags    标签列表
-     * @return 是否修改了Javadoc
+     * @return 是否修改了 Javadoc
      */
     private boolean processMethodReturn(MethodDeclaration method, Javadoc javadoc, List<JavadocBlockTag> tags) {
         if (!config.isAddReturnJavadoc())
@@ -346,9 +382,9 @@ public class JavadocProcessor {
      * 处理方法异常注释
      *
      * @param method  方法声明
-     * @param javadoc Javadoc对象
+     * @param javadoc Javadoc 对象
      * @param tags    标签列表
-     * @return 是否修改了Javadoc
+     * @return 是否修改了 Javadoc
      */
     private boolean processMethodThrows(MethodDeclaration method, Javadoc javadoc, List<JavadocBlockTag> tags) {
         return config.isAddThrowsJavadoc() && processThrowsTags(method, javadoc, tags);
@@ -356,13 +392,13 @@ public class JavadocProcessor {
 
     /**
      * 处理参数标签
-     * 为方法参数添加Javadoc标签，并正确处理泛型参数
+     * 为方法参数添加 Javadoc 标签，并正确处理泛型参数
      * 若标签存在但内容为空，则自动补全标准描述
      *
      * @param method  方法声明
-     * @param javadoc Javadoc对象
+     * @param javadoc Javadoc 对象
      * @param tags    标签列表
-     * @return 是否修改了Javadoc
+     * @return 是否修改了 Javadoc
      */
     private boolean processParamTags(MethodDeclaration method, Javadoc javadoc, List<JavadocBlockTag> tags) {
         boolean modified = false;
@@ -418,14 +454,14 @@ public class JavadocProcessor {
 
     /**
      * 处理返回值标签
-     * 为非void方法添加返回值标签，并处理泛型类型
-     * 对于void方法，移除任何现有的@return标签
-     * 若@return标签存在但内容为空，则自动补全标准描述
+     * 为非 void 方法添加返回值标签，并处理泛型类型
+     * 对于 void 方法，移除任何现有的@return 标签
+     * 若@return 标签存在但内容为空，则自动补全标准描述
      *
      * @param node    节点
-     * @param javadoc Javadoc对象
+     * @param javadoc Javadoc 对象
      * @param tags    标签列表
-     * @return 是否修改了Javadoc
+     * @return 是否修改了 Javadoc
      */
     private boolean processReturnTag(Node node, Javadoc javadoc, List<JavadocBlockTag> tags) {
         String returnType;
@@ -455,8 +491,8 @@ public class JavadocProcessor {
 
     /**
      * 处理抛出异常标签
-     * 为方法添加抛出异常的Javadoc标签，并处理泛型异常
-     * 若@throws标签存在但内容为空，则自动补全标准描述
+     * 为方法添加抛出异常的 Javadoc 标签，并处理泛型异常
+     * 若@throws 标签存在但内容为空，则自动补全标准描述
      */
     private void removeAllReturnTags(List<JavadocBlockTag> tags) {
         Iterator<JavadocBlockTag> iterator = tags.iterator();
@@ -464,7 +500,7 @@ public class JavadocProcessor {
             JavadocBlockTag tag = iterator.next();
             if (tag.getType() == JavadocBlockTag.Type.RETURN) {
                 // 打印或记录被移除的标签信息
-                log.debug("移除的标签: " + tag.toString());
+                log.debug("移除的标签：{}", tag.toString());
                 iterator.remove();
             }
         }
@@ -476,8 +512,8 @@ public class JavadocProcessor {
      * 如果存在返回标签但内容为空或包含不合适的字符（如尖括号），则进行清理或更新
      *
      * @param annoMember 注解成员声明对象
-     * @param javadoc    Javadoc对象
-     * @param tags       Javadoc块标签列表
+     * @param javadoc    Javadoc 对象
+     * @param tags       Javadoc 块标签列表
      * @return boolean 表示是否对文档进行了修改
      */
     private boolean processAnnotationReturnTags(AnnotationMemberDeclaration annoMember, Javadoc javadoc,
@@ -513,13 +549,13 @@ public class JavadocProcessor {
 
     /**
      * 处理异常标签
-     * 为方法声明的异常添加Javadoc标签，并正确处理泛型异常类型
-     * 支持标准的@throws标签和非标准的@exception标签
+     * 为方法声明的异常添加 Javadoc 标签，并处理泛型异常类型
+     * 支持标准的@throws 标签和非标准的@exception 标签
      *
      * @param method  方法声明
-     * @param javadoc Javadoc对象
+     * @param javadoc Javadoc 对象
      * @param tags    标签列表
-     * @return 是否修改了Javadoc
+     * @return 是否修改了 Javadoc
      */
     private boolean processThrowsTags(MethodDeclaration method, Javadoc javadoc, List<JavadocBlockTag> tags) {
         boolean modified = false;
@@ -529,14 +565,14 @@ public class JavadocProcessor {
             String exceptionName = exception.toString();
             String cleanExceptionName = JavadocUtils.cleanAngleBrackets(exceptionName);
 
-            // 查找现有的标准@throws标签
+            // 查找现有的标准@throws 标签
             JavadocBlockTag existingThrowsTag = findBlockTag(tags, JavadocBlockTag.Type.THROWS, exceptionName);
             if (existingThrowsTag == null) {
                 // 尝试查找使用清理后的异常名称的标签
                 existingThrowsTag = findBlockTag(tags, JavadocBlockTag.Type.THROWS, cleanExceptionName);
             }
 
-            // 使用工具类查找非标准的@exception标签
+            // 使用工具类查找非标准的@exception 标签
             if (existingThrowsTag == null) {
                 existingThrowsTag = JavadocUtils.findCustomBlockTag(tags, "exception", exceptionName);
                 if (existingThrowsTag == null) {
@@ -572,22 +608,22 @@ public class JavadocProcessor {
      *
      * @param tags 标签列表
      * @param type 标签类型
-     * @param name 标签名称（可为null）
-     * @return 找到的标签，如果没有找到则返回null
+     * @param name 标签名称（可为 null）
+     * @return 找到的标签，如果没有找到则返回 null
      */
     private JavadocBlockTag findBlockTag(List<JavadocBlockTag> tags, JavadocBlockTag.Type type, String name) {
         return JavadocUtils.findBlockTag(tags, type, name);
     }
 
     /**
-     * 移除Javadoc中的非标准标签，仅保留标准标签
+     * 移除 Javadoc 中的非标准标签，仅保留标准标签
      *
      * @param tags 标签列表
      * @return 是否有标签被移除
      */
     private boolean removeNonStandardTags(List<JavadocBlockTag> tags) {
         boolean modified = false;
-        // 标准Javadoc标签集合
+        // 标准 Javadoc 标签集合
         final List<String> standardTags = Arrays.asList(
                 "author", "deprecated", "exception", "param", "return", "see", "serial", "serialData", "serialField",
                 "since", "throws", "version");

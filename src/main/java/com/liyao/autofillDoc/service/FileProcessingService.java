@@ -2,7 +2,7 @@ package com.liyao.autofillDoc.service;
 
 import com.liyao.autofillDoc.config.JavadocAutofillConfig;
 import com.liyao.autofillDoc.exception.JavadocProcessingException;
-import org.apache.maven.plugin.logging.Log;
+import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,11 +14,11 @@ import java.util.stream.Stream;
 
 /**
  * 文件处理服务
- * 负责遍历源代码目录并处理Java文件
+ * 负责遍历源代码目录并处理 Java 文件
  */
 public class FileProcessingService {
 
-    private final Log log;
+    private final Logger log;
     private final JavadocAutofillConfig config;
     private final JavadocProcessor javadocProcessor;
 
@@ -28,7 +28,7 @@ public class FileProcessingService {
      * @param log    日志对象
      * @param config 配置对象
      */
-    public FileProcessingService(Log log, JavadocAutofillConfig config) {
+    public FileProcessingService(Logger log, JavadocAutofillConfig config) {
         this.log = log;
         this.config = config;
         this.javadocProcessor = new JavadocProcessor(log, config);
@@ -44,37 +44,37 @@ public class FileProcessingService {
         File sourceDir = config.getSourceDir();
 
         if (!sourceDir.exists()) {
-            log.warn("源代码目录不存在: " + sourceDir);
+            log.warn("源代码目录不存在：{}", sourceDir);
             return 0;
         }
 
         AtomicInteger processedCount = new AtomicInteger(0);
         List<String> excludePatterns = config.getExcludePatterns();
 
-        log.info("开始处理Java文件, 排除模式数量: " + (excludePatterns != null ? excludePatterns.size() : 0));
+        log.info("开始处理 Java 文件，排除模式数量：{}", excludePatterns != null ? excludePatterns.size() : 0);
 
         if (!config.isIncludePrivateMethods()) {
-            log.info("isIncludePrivateMethods设置为false, 跳过私有方法处理");
+            log.info("isIncludePrivateMethods 设置为 false, 跳过私有方法处理");
         }
 
         if (!config.isAddReturnJavadoc()) {
-            log.info("addReturnJavadoc设置为false, 跳过返回值注释处理");
+            log.info("addReturnJavadoc 设置为 false, 跳过返回值注释处理");
         }
         
         if (!config.isAddThrowsJavadoc()) {
-            log.info("addThrowsJavadoc设置为false, 跳过抛出异常注释处理");
+            log.info("addThrowsJavadoc 设置为 false, 跳过抛出异常注释处理");
         }
 
         if (!config.isAddParamJavadoc()) {
-            log.info("addParamJavadoc设置为false, 跳过参数注释处理");
+            log.info("addParamJavadoc 设置为 false, 跳过参数注释处理");
         }
 
         if (!config.isAddClassJavadoc()) {
-            log.info("addClassJavadoc设置为false, 跳过类注释处理");
+            log.info("addClassJavadoc 设置为 false, 跳过类注释处理");
         }
 
         if (!config.isAddMethodJavadoc()) {
-            log.info("addMethodJavadoc设置为false, 跳过方法注释处理");
+            log.info("addMethodJavadoc 设置为 false, 跳过方法注释处理");
         }
 
         try (Stream<Path> paths = Files.walk(sourceDir.toPath())) {
@@ -91,21 +91,21 @@ public class FileProcessingService {
                         }
                     });
         } catch (IOException e) {
-            log.error("遍历Java文件失败", e);
-            throw new JavadocProcessingException("遍历源代码目录失败: " + sourceDir, e);
+            log.error("遍历 Java 文件失败", e);
+            throw new JavadocProcessingException("遍历源代码目录失败：" + sourceDir, e);
         }
 
         if (processedCount.get() == 0) {
-            log.info("未找到需要处理的Java文件");
+            log.info("未找到需要处理的 Java 文件");
         }
          
         return processedCount.get();
     }
 
     /**
-     * 处理单个Java文件
+     * 处理单个 Java 文件
      *
-     * @param file Java文件
+     * @param file Java 文件
      * @return 是否成功处理文件
      * @throws JavadocProcessingException 处理异常
      */
@@ -113,10 +113,10 @@ public class FileProcessingService {
         try {
             return javadocProcessor.processJavaFile(file);
         } catch (JavadocProcessingException e) {
-            // 直接抛出JavadocProcessingException异常
+            // 直接抛出 JavadocProcessingException 异常
             throw e;
         } catch (Exception e) {
-            // 包装其他异常为JavadocProcessingException
+            // 包装其他异常为 JavadocProcessingException
             throw JavadocProcessingException.createFileProcessingException(file.getPath(), e);
         }
     }
