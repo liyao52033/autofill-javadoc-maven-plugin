@@ -81,9 +81,50 @@ public class JavadocAutofillConfig {
      */
     private final boolean skipExistingJavadoc;
 
+    // ==================== 并发控制配置 ====================
+    /**
+     * 是否启用并发处理
+     */
+    private final boolean enableConcurrent;
+
+    /**
+     * 工作线程数
+     */
+    private final int workerThreads;
+
+    /**
+     * AI 批处理大小
+     */
+    private final int aiBatchSize;
+
+    /**
+     * AI 批次间隔（毫秒）
+     */
+    private final long aiBatchDelayMs;
+
+    /**
+     * 最大重试次数
+     */
+    private final int maxRetries;
+
+    /**
+     * 锁超时时间（毫秒）
+     */
+    private final long lockTimeoutMs;
+
+    /**
+     * 是否使用 OS 文件锁
+     */
+    private final boolean useOsLock;
+
+    /**
+     * AI 请求超时时间（秒）
+     */
+    private final long aiTimeoutSeconds;
+
     /**
      * 构造函数
-     * 
+     *
      * @param builder 构建器
      */
     private JavadocAutofillConfig(Builder builder) {
@@ -101,11 +142,20 @@ public class JavadocAutofillConfig {
         this.aiModel = builder.aiModel;
         this.aiProvider = builder.aiProvider;
         this.skipExistingJavadoc = builder.skipExistingJavadoc;
+        // 并发控制配置
+        this.enableConcurrent = builder.enableConcurrent;
+        this.workerThreads = builder.workerThreads;
+        this.aiBatchSize = builder.aiBatchSize;
+        this.aiBatchDelayMs = builder.aiBatchDelayMs;
+        this.maxRetries = builder.maxRetries;
+        this.lockTimeoutMs = builder.lockTimeoutMs;
+        this.useOsLock = builder.useOsLock;
+        this.aiTimeoutSeconds = builder.aiTimeoutSeconds;
     }
 
     /**
      * 获取源代码目录
-     * 
+     *
      * @return 源代码目录
      */
     public File getSourceDir() {
@@ -114,7 +164,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 是否添加类注释
-     * 
+     *
      * @return 是否添加类注释
      */
     public boolean isAddClassJavadoc() {
@@ -123,7 +173,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 是否添加方法注释
-     * 
+     *
      * @return 是否添加方法注释
      */
     public boolean isAddMethodJavadoc() {
@@ -132,7 +182,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 是否添加参数注释
-     * 
+     *
      * @return 是否添加参数注释
      */
     public boolean isAddParamJavadoc() {
@@ -141,7 +191,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 是否添加返回值注释
-     * 
+     *
      * @return 是否添加返回值注释
      */
     public boolean isAddReturnJavadoc() {
@@ -150,7 +200,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 是否添加异常注释
-     * 
+     *
      * @return 是否添加异常注释
      */
     public boolean isAddThrowsJavadoc() {
@@ -159,7 +209,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 获取排除特定文件的模式列表
-     * 
+     *
      * @return 排除模式列表
      */
     public List<String> getExcludePatterns() {
@@ -168,7 +218,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 是否包含私有方法
-     * 
+     *
      * @return 是否包含私有方法
      */
     public boolean isIncludePrivateMethods() {
@@ -177,7 +227,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 是否启用 AI 生成方法描述
-     * 
+     *
      * @return 是否启用 AI
      */
     public boolean isEnableAi() {
@@ -186,7 +236,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 获取 AI API 密钥
-     * 
+     *
      * @return AI API 密钥
      */
     public String getAiApiKey() {
@@ -195,7 +245,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 获取 AI API 地址
-     * 
+     *
      * @return AI API 地址
      */
     public String getAiApiUrl() {
@@ -204,7 +254,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 获取 AI 模型名称
-     * 
+     *
      * @return AI 模型名称
      */
     public String getAiModel() {
@@ -213,7 +263,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 获取 AI 提供商名称
-     * 
+     *
      * @return AI 提供商名称
      */
     public String getAiProvider() {
@@ -222,7 +272,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 获取 AI 提供商的预设 API 地址
-     * 
+     *
      * @return API 地址
      */
     public String getProviderApiUrl() {
@@ -235,7 +285,7 @@ public class JavadocAutofillConfig {
 
     /**
      * 获取 AI 提供商的预设模型名称
-     * 
+     *
      * @return 模型名称
      */
     public String getProviderModel() {
@@ -248,11 +298,84 @@ public class JavadocAutofillConfig {
 
     /**
      * 是否跳过已有注释的方法
-     * 
+     *
      * @return 是否跳过
      */
     public boolean isSkipExistingJavadoc() {
         return skipExistingJavadoc;
+    }
+
+    // ==================== 并发控制配置 Getter ====================
+    /**
+     * 是否启用并发处理
+     *
+     * @return 是否启用并发处理
+     */
+    public boolean isEnableConcurrent() {
+        return enableConcurrent;
+    }
+
+    /**
+     * 获取工作线程数
+     *
+     * @return 工作线程数
+     */
+    public int getWorkerThreads() {
+        return workerThreads;
+    }
+
+    /**
+     * 获取 AI 批处理大小
+     *
+     * @return AI 批处理大小
+     */
+    public int getAiBatchSize() {
+        return aiBatchSize;
+    }
+
+    /**
+     * 获取 AI 批次间隔（毫秒）
+     *
+     * @return AI 批次间隔
+     */
+    public long getAiBatchDelayMs() {
+        return aiBatchDelayMs;
+    }
+
+    /**
+     * 获取最大重试次数
+     *
+     * @return 最大重试次数
+     */
+    public int getMaxRetries() {
+        return maxRetries;
+    }
+
+    /**
+     * 获取锁超时时间（毫秒）
+     *
+     * @return 锁超时时间
+     */
+    public long getLockTimeoutMs() {
+        return lockTimeoutMs;
+    }
+
+    /**
+     * 是否使用 OS 文件锁
+     *
+     * @return 是否使用 OS 文件锁
+     */
+    public boolean isUseOsLock() {
+        return useOsLock;
+    }
+
+    /**
+     * 获取 AI 请求超时时间（秒）
+     *
+     * @return AI 请求超时时间
+     */
+    public long getAiTimeoutSeconds() {
+        return aiTimeoutSeconds;
     }
 
     /**
@@ -260,19 +383,21 @@ public class JavadocAutofillConfig {
      * 包含主流 AI 服务提供商的预设配置
      */
     public enum AiProvider {
-        OPENAI("https://api.openai.com", "gpt-3.5-turbo"),
-        DEEPSEEK("https://api.deepseek.com", "deepseek-chat"),
-        MOONSHOT("https://api.moonshot.cn", "moonshot-v1-8k"),
-        ZHIPU("https://open.bigmodel.cn", "glm-4"),
-        OLLAMA("http://localhost:11434", "mistral"),
-        AZURE("https://api.azure.com", "gpt-4"),
-        ANTHROPIC("https://api.anthropic.com", "claude-3-sonnet-20240229"),
-        GEMINI("https://generativelanguage.googleapis.com", "gemini-pro"),
-        BAIDU("https://aip.baidubce.com", "ernie-bot-4"),
-        ALIBABA("https://dashscope.aliyuncs.com", "qwen-turbo"),
+
+        OPENAI("https://api.openai.com/v1/chat/completions", "gpt-3.5-turbo"),
+        DEEPSEEK("https://api.deepseek.com/v1/chat/completions", "deepseek-chat"),
+        MOONSHOT("https://api.moonshot.cn/v1/chat/completions", "moonshot-v1-8k"),
+        ZHIPU("https://open.bigmodel.cn/api/paas/v4/chat/completions", "glm-4"),
+        OLLAMA("http://localhost:11434/v1/chat/completions", "mistral"),
+        AZURE("https://api.azure.com/v1/chat/completions", "gpt-4"),
+        ANTHROPIC("https://api.anthropic.com/v1/messages", "claude-3-sonnet-20240229"),
+        GEMINI("https://generativelanguage.googleapis.com/v1beta/models", "gemini-pro"),
+        BAIDU("https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions", "ernie-bot-4"),
+        ALIBABA("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", "qwen-turbo"),
         CUSTOM("", "gpt-3.5-turbo");
 
         private final String defaultUrl;
+
         private final String defaultModel;
 
         AiProvider(String defaultUrl, String defaultModel) {
@@ -280,17 +405,27 @@ public class JavadocAutofillConfig {
             this.defaultModel = defaultModel;
         }
 
+        /**
+         * 获取DefaultUrl
+         *
+         * @return 返回字符串
+         */
         public String getDefaultUrl() {
             return defaultUrl;
         }
 
+        /**
+         * 获取DefaultModel
+         *
+         * @return 返回字符串
+         */
         public String getDefaultModel() {
             return defaultModel;
         }
 
         /**
          * 根据名称获取提供商
-         * 
+         *
          * @param name 提供商名称
          * @return AI 提供商枚举
          */
@@ -307,7 +442,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 获取提供商的默认 API 地址
-         * 
+         *
          * @param name 提供商名称
          * @return API 地址
          */
@@ -317,7 +452,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 获取提供商的默认模型
-         * 
+         *
          * @param name 提供商名称
          * @return 模型名称
          */
@@ -330,24 +465,55 @@ public class JavadocAutofillConfig {
      * 构建器类
      */
     public static class Builder {
+
         private File sourceDir;
+
         private boolean addClassJavadoc = true;
+
         private boolean addMethodJavadoc = true;
+
         private boolean addParamJavadoc = true;
+
         private boolean addReturnJavadoc = true;
+
         private boolean addThrowsJavadoc = true;
+
         private List<String> excludePatterns = new ArrayList<>();
+
         private boolean includePrivateMethods = false;
+
         private boolean enableAi = false;
+
         private String aiApiKey = "";
+
         private String aiApiUrl = "";
+
         private String aiModel = "";
+
         private String aiProvider = "OPENAI";
+
         private boolean skipExistingJavadoc = true;
+
+        // 并发控制配置默认值
+        private boolean enableConcurrent = true;
+
+        private int workerThreads = 4;
+
+        private int aiBatchSize = 10;
+
+        private long aiBatchDelayMs = 1000;
+
+        private int maxRetries = 3;
+
+        private long lockTimeoutMs = 30000;
+
+        private boolean useOsLock = true;
+
+        private long aiTimeoutSeconds = 60;
 
         /**
          * 设置源代码目录
-         * 
+         *
          * @param sourceDir 源代码目录
          * @return 构建器
          */
@@ -358,7 +524,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置是否添加类注释
-         * 
+         *
          * @param addClassJavadoc 是否添加类注释
          * @return 构建器
          */
@@ -369,7 +535,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置是否添加方法注释
-         * 
+         *
          * @param addMethodJavadoc 是否添加方法注释
          * @return 构建器
          */
@@ -380,7 +546,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置是否添加参数注释
-         * 
+         *
          * @param addParamJavadoc 是否添加参数注释
          * @return 构建器
          */
@@ -391,7 +557,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置是否添加返回值注释
-         * 
+         *
          * @param addReturnJavadoc 是否添加返回值注释
          * @return 构建器
          */
@@ -402,7 +568,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置是否添加异常注释
-         * 
+         *
          * @param addThrowsJavadoc 是否添加异常注释
          * @return 构建器
          */
@@ -413,7 +579,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置排除特定文件的模式列表
-         * 
+         *
          * @param excludePatterns 排除模式列表
          * @return 构建器
          */
@@ -424,7 +590,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置是否包含私有方法
-         * 
+         *
          * @param includePrivateMethods 是否包含私有方法
          * @return 构建器
          */
@@ -435,7 +601,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置是否启用 AI 生成方法描述
-         * 
+         *
          * @param enableAi 是否启用 AI
          * @return 构建器
          */
@@ -446,7 +612,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置 AI API 密钥
-         * 
+         *
          * @param aiApiKey AI API 密钥
          * @return 构建器
          */
@@ -457,7 +623,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置 AI API 地址
-         * 
+         *
          * @param aiApiUrl AI API 地址
          * @return 构建器
          */
@@ -468,7 +634,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置 AI 模型名称
-         * 
+         *
          * @param aiModel AI 模型名称
          * @return 构建器
          */
@@ -479,7 +645,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置 AI 提供商名称
-         * 
+         *
          * @param aiProvider AI 提供商名称 (OPENAI, DEEPSEEK, MOONSHOT, ZHIPU, OLLAMA 等)
          * @return 构建器
          */
@@ -490,7 +656,7 @@ public class JavadocAutofillConfig {
 
         /**
          * 设置是否跳过已有注释的方法
-         * 
+         *
          * @param skipExistingJavadoc 是否跳过
          * @return 构建器
          */
@@ -499,9 +665,98 @@ public class JavadocAutofillConfig {
             return this;
         }
 
+        // ==================== 并发控制配置 Builder ====================
+        /**
+         * 设置是否启用并发处理
+         *
+         * @param enableConcurrent 是否启用并发处理
+         * @return 构建器
+         */
+        public Builder enableConcurrent(boolean enableConcurrent) {
+            this.enableConcurrent = enableConcurrent;
+            return this;
+        }
+
+        /**
+         * 设置工作线程数
+         *
+         * @param workerThreads 工作线程数
+         * @return 构建器
+         */
+        public Builder workerThreads(int workerThreads) {
+            this.workerThreads = workerThreads;
+            return this;
+        }
+
+        /**
+         * 设置 AI 批处理大小
+         *
+         * @param aiBatchSize AI 批处理大小
+         * @return 构建器
+         */
+        public Builder aiBatchSize(int aiBatchSize) {
+            this.aiBatchSize = aiBatchSize;
+            return this;
+        }
+
+        /**
+         * 设置 AI 批次间隔（毫秒）
+         *
+         * @param aiBatchDelayMs AI 批次间隔
+         * @return 构建器
+         */
+        public Builder aiBatchDelayMs(long aiBatchDelayMs) {
+            this.aiBatchDelayMs = aiBatchDelayMs;
+            return this;
+        }
+
+        /**
+         * 设置最大重试次数
+         *
+         * @param maxRetries 最大重试次数
+         * @return 构建器
+         */
+        public Builder maxRetries(int maxRetries) {
+            this.maxRetries = maxRetries;
+            return this;
+        }
+
+        /**
+         * 设置锁超时时间（毫秒）
+         *
+         * @param lockTimeoutMs 锁超时时间
+         * @return 构建器
+         */
+        public Builder lockTimeoutMs(long lockTimeoutMs) {
+            this.lockTimeoutMs = lockTimeoutMs;
+            return this;
+        }
+
+        /**
+         * 设置是否使用 OS 文件锁
+         *
+         * @param useOsLock 是否使用 OS 文件锁
+         * @return 构建器
+         */
+        public Builder useOsLock(boolean useOsLock) {
+            this.useOsLock = useOsLock;
+            return this;
+        }
+
+        /**
+         * 设置 AI 请求超时时间（秒）
+         *
+         * @param aiTimeoutSeconds AI 请求超时时间
+         * @return 构建器
+         */
+        public Builder aiTimeoutSeconds(long aiTimeoutSeconds) {
+            this.aiTimeoutSeconds = aiTimeoutSeconds;
+            return this;
+        }
+
         /**
          * 构建配置对象
-         * 
+         *
          * @return 配置对象
          */
         public JavadocAutofillConfig build() {

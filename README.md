@@ -331,23 +331,33 @@ export OPENAI_API_KEY=your-openai-api-key
 
 ### 命令行使用
 
-也可以通过命令行参数配置 AI：
+也可以通过命令行参数配置 AI
 
-```bash
-# 使用环境变量（推荐）
+####  使用环境变量（推荐）
+
+首先导入环境变量
+
+```sh
 export AI_API_KEY=your-api-key
-mvn autofill:autofill -DenableAi=true -DaiProvider=DEEPSEEK
+```
 
-# 使用预设提供商
-mvn autofill:autofill -DenableAi=true -DaiApiKey=your-api-key -DaiProvider=DEEPSEEK
+然后使用
 
-# 自定义配置
-mvn autofill:autofill -DenableAi=true -DaiApiKey=your-api-key \
-  -DaiApiUrl=https://api.deepseek.com/v1/chat/completions \
-  -DaiModel=deepseek-chat
+```sh
+mvn io.github.liyao52033:autofill-javadoc-maven-plugin:1.3.0:autofill -DenableAi=true -DaiProvider=DEEPSEEK -DsourceDir=src/main/java
+```
 
-# 关闭跳过已有注释（强制重新生成）
-mvn autofill:autofill -DenableAi=true -DskipExistingJavadoc=false
+#### 使用预设提供商 
+
+```sh
+mvn io.github.liyao52033:autofill-javadoc-maven-plugin:1.3.0:autofill -DenableAi=true -DaiApiKey=your-api-key -DaiProvider=DEEPSEEK -DsourceDir=src/main/java
+```
+
+#### 自定义配置
+
+```sh
+mvn io.github.liyao52033:autofill-javadoc-maven-plugin:1.3.0:autofill -DenableAi=true -DaiApiKey=your-api-key 
+-DaiApiUrl=https://api.deepseek.com/v1/chat/completions -DaiModel=deepseek-chat -DsourceDir=src/main/java
 ```
 
 ### 与maven-javadoc-plugin集成发布到中央仓库
@@ -394,6 +404,9 @@ mvn autofill:autofill -DenableAi=true -DskipExistingJavadoc=false
       </executions>
       <configuration>
         <sourceDir>src/main/java</sourceDir> <!-- 指定源代码目录 -->
+        <enableAi>true</enableAi>
+        <aiApiKey>your-deepseek-api-key</aiApiKey>
+        <aiProvider>DEEPSEEK</aiProvider>
       </configuration>
     </plugin>
     <plugin>

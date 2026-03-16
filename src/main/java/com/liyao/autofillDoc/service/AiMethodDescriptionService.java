@@ -35,7 +35,9 @@ public class AiMethodDescriptionService {
     public AiMethodDescriptionService(Logger log, String apiKey, String apiUrl, String model) {
         this.log = log;
         this.apiKey = apiKey;
-        this.apiUrl = normalizeApiUrl(apiUrl);
+        String normalizedUrl = normalizeApiUrl(apiUrl);
+        log.info("AI API  URL: {}",normalizedUrl);
+        this.apiUrl = normalizedUrl;
         this.model = model;
 
         // 配置 HTTP 客户端

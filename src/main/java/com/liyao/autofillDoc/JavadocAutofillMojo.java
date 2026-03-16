@@ -8,10 +8,12 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.util.List;
 
+/**
+ * JavadocAutofillMojo 类的描述
+ */
 @Mojo(name = "autofill", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class JavadocAutofillMojo extends AbstractMojo {
 
@@ -86,8 +88,9 @@ public class JavadocAutofillMojo extends AbstractMojo {
 
     /**
      * AI API 地址
+     * 默认根据 aiProvider 自动选择，如果指定则使用自定义地址
      */
-    @Parameter(property = "aiApiUrl", defaultValue = "https://api.openai.com/v1/chat/completions")
+    @Parameter(property = "aiApiUrl")
     private String aiApiUrl;
 
     /**
@@ -102,6 +105,56 @@ public class JavadocAutofillMojo extends AbstractMojo {
      */
     @Parameter(property = "aiProvider", defaultValue = "OPENAI")
     private String aiProvider;
+
+    // ==================== 并发控制参数 ====================
+    /**
+     * 是否启用并发处理
+     * 启用后可提高大项目处理速度，同时支持并发冲突检测和自动合并
+     */
+    @Parameter(property = "enableConcurrent", defaultValue = "true")
+    private boolean enableConcurrent;
+
+    /**
+     * 工作线程数（并行解析文件）
+     */
+    @Parameter(property = "workerThreads", defaultValue = "4")
+    private int workerThreads;
+
+    /**
+     * AI 批处理大小（单次 AI 批处理的任务数）
+     */
+    @Parameter(property = "aiBatchSize", defaultValue = "10")
+    private int aiBatchSize;
+
+    /**
+     * AI 批次间隔（毫秒，用于 API 限流保护）
+     */
+    @Parameter(property = "aiBatchDelayMs", defaultValue = "1000")
+    private long aiBatchDelayMs;
+
+    /**
+     * 最大重试次数
+     */
+    @Parameter(property = "maxRetries", defaultValue = "3")
+    private int maxRetries;
+
+    /**
+     * 锁超时时间（毫秒）
+     */
+    @Parameter(property = "lockTimeoutMs", defaultValue = "30000")
+    private long lockTimeoutMs;
+
+    /**
+     * 是否使用 OS 文件锁（多进程保护）
+     */
+    @Parameter(property = "useOsLock", defaultValue = "true")
+    private boolean useOsLock;
+
+    /**
+     * AI 请求超时时间（秒）
+     */
+    @Parameter(property = "aiTimeoutSeconds", defaultValue = "60")
+    private long aiTimeoutSeconds;
 
     /**
      * 执行插件
@@ -120,37 +173,17 @@ public class JavadocAutofillMojo extends AbstractMojo {
             if (effectiveApiKey == null || effectiveApiKey.isEmpty()) {
                 effectiveApiKey = System.getenv("OPENAI_API_KEY");
             }
-
             // 创建配置对象
-            JavadocAutofillConfig config = new JavadocAutofillConfig.Builder()
-                    .sourceDir(sourceDir)
-                    .addClassJavadoc(addClassJavadoc)
-                    .addMethodJavadoc(addMethodJavadoc)
-                    .addParamJavadoc(addParamJavadoc)
-                    .addReturnJavadoc(addReturnJavadoc)
-                    .addThrowsJavadoc(addThrowsJavadoc)
-                    .excludePatterns(excludePatterns)
-                    .includePrivateMethods(includePrivateMethods)
-                    .enableAi(enableAi)
-                    .aiApiKey(effectiveApiKey)
-                    .aiApiUrl(aiApiUrl)
-                    .aiModel(aiModel)
-                    .aiProvider(aiProvider)
-                    .skipExistingJavadoc(skipExistingJavadoc)
-                    .build();
-
+            JavadocAutofillConfig config = new JavadocAutofillConfig.Builder().sourceDir(sourceDir).addClassJavadoc(addClassJavadoc).addMethodJavadoc(addMethodJavadoc).addParamJavadoc(addParamJavadoc).addReturnJavadoc(addReturnJavadoc).addThrowsJavadoc(addThrowsJavadoc).excludePatterns(excludePatterns).includePrivateMethods(includePrivateMethods).enableAi(enableAi).aiApiKey(effectiveApiKey).aiApiUrl(aiApiUrl).aiModel(aiModel).aiProvider(aiProvider).skipExistingJavadoc(skipExistingJavadoc).// 并发控制配置
+            enableConcurrent(enableConcurrent).workerThreads(workerThreads).aiBatchSize(aiBatchSize).aiBatchDelayMs(aiBatchDelayMs).maxRetries(maxRetries).lockTimeoutMs(lockTimeoutMs).useOsLock(useOsLock).aiTimeoutSeconds(aiTimeoutSeconds).build();
             // 创建文件处理服务并执行处理
             FileProcessingService fileProcessingService = new FileProcessingService(log, config);
             int processedCount = fileProcessingService.processSourceDirectory();
-            
-
             if (processedCount > 0) {
                 log.info("执行 Javadoc 自动填充插件完成，共处理 {} 个文件", processedCount);
             }
-         
         } catch (Exception e) {
             log.error("执行 Javadoc 自动填充插件失败：{}", e.getMessage(), e);
         }
     }
-
 }
